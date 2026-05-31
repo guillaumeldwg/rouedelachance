@@ -1,0 +1,463 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;700;900&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 2.5rem;
+    background: transparent;
+    font-family: 'Nunito', sans-serif;
+    user-select: none;
+  }
+
+  .announcement {
+    min-height: 56px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .ann-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 2px;
+    color: var(--color-text-primary);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.5s, transform 0.5s;
+  }
+
+  .ann-text.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .ann-text .winner {
+    display: block;
+    font-size: 2.6rem;
+    margin-top: 4px;
+  }
+
+  .wheel-container {
+    position: relative;
+    width: 340px;
+    height: 340px;
+  }
+
+  .wheel-canvas {
+    border-radius: 50%;
+    cursor: pointer;
+    display: block;
+  }
+
+  .wheel-canvas.spinning {
+    cursor: not-allowed;
+  }
+
+  .pointer {
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 14px solid transparent;
+    border-right: 14px solid transparent;
+    border-top: 34px solid #E24B4A;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    z-index: 10;
+  }
+
+  .center-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--color-background-primary);
+    border: 3px solid var(--color-border-primary);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    letter-spacing: 1px;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    z-index: 10;
+    transition: background 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .center-btn:hover { background: var(--color-background-secondary); }
+  .center-btn:active { transform: translate(-50%, -50%) scale(0.95); }
+  .center-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .add-section {
+    margin-top: 2rem;
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .add-section input {
+    flex: 1;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    padding: 8px 12px;
+    border-radius: var(--border-radius-md);
+    border: 0.5px solid var(--color-border-secondary);
+    background: var(--color-background-primary);
+    color: var(--color-text-primary);
+    outline: none;
+  }
+
+  .add-section input:focus {
+    box-shadow: 0 0 0 2px var(--color-border-secondary);
+  }
+
+  .add-section button, .reset-btn {
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 8px 16px;
+    border-radius: var(--border-radius-md);
+    border: 0.5px solid var(--color-border-secondary);
+    background: var(--color-background-secondary);
+    color: var(--color-text-primary);
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    white-space: nowrap;
+  }
+
+  .add-section button:hover, .reset-btn:hover { background: var(--color-background-tertiary); }
+  .add-section button:active, .reset-btn:active { transform: scale(0.97); }
+
+  .controls {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .slots-list {
+    margin-top: 1.2rem;
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+
+  .slot-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px 4px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    border: 1.5px solid;
+  }
+
+  .slot-tag button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+    color: inherit;
+  }
+
+  .slot-tag button:hover { opacity: 1; }
+
+  .confetti-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    pointer-events: none;
+    z-index: 9999;
+  }
+</style>
+
+<div class="wrap">
+  <h2 class="sr-only">Roue de la chance — choisit un gagnant parmi vos options</h2>
+
+  <div class="announcement">
+    <div class="ann-text" id="ann"></div>
+  </div>
+
+  <div class="wheel-container">
+    <div class="pointer"></div>
+    <canvas class="wheel-canvas" id="wheel" width="340" height="340"></canvas>
+    <button class="center-btn" id="spinBtn" aria-label="Lancer la roue">SPIN</button>
+  </div>
+
+  <div class="add-section" style="margin-top:1.5rem;">
+    <input id="nameInput" type="text" placeholder="Ajouter un nom..." maxlength="20" />
+    <button id="addBtn">Ajouter</button>
+  </div>
+
+  <div class="controls">
+    <button class="reset-btn" id="resetBtn">Réinitialiser</button>
+  </div>
+
+  <div class="slots-list" id="slotsList"></div>
+</div>
+
+<canvas class="confetti-canvas" id="confettiCanvas"></canvas>
+
+<script>
+const BANNED = ['guillom','guyom','guillaume','giom'];
+
+function normalize(name) {
+  return name.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+
+const isBanned = name => BANNED.includes(normalize(name));
+
+const PALETTE = [
+  ['#378ADD','#042C53'],['#1D9E75','#04342C'],['#D4537E','#4B1528'],
+  ['#E24B4A','#501313'],['#BA7517','#412402'],['#7F77DD','#26215C'],
+  ['#5DCAA5','#085041'],['#D85A30','#4A1B0C'],['#639922','#173404'],
+  ['#888780','#2C2C2A'],
+];
+
+let slots = ['Alice','Bob','Chloé','Dylan','Emma','Farida','Guillaume'];
+let currentAngle = 0;
+let spinning = false;
+
+const canvas = document.getElementById('wheel');
+const ctx = canvas.getContext('2d');
+const spinBtn = document.getElementById('spinBtn');
+const ann = document.getElementById('ann');
+const nameInput = document.getElementById('nameInput');
+const addBtn = document.getElementById('addBtn');
+const resetBtn = document.getElementById('resetBtn');
+const slotsList = document.getElementById('slotsList');
+
+function drawWheel(angle) {
+  const cx = 170, cy = 170, r = 160;
+  const n = slots.length;
+  const arc = (2 * Math.PI) / n;
+
+  ctx.clearRect(0, 0, 340, 340);
+
+  slots.forEach((name, i) => {
+    const start = angle + i * arc;
+    const end = start + arc;
+    const [fill, text] = PALETTE[i % PALETTE.length];
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, start, end);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(start + arc / 2);
+    ctx.textAlign = 'right';
+    const fontSize = n > 10 ? 11 : n > 7 ? 13 : 15;
+    ctx.font = `900 ${fontSize}px 'Nunito', sans-serif`;
+    ctx.fillStyle = text;
+    ctx.shadowColor = 'rgba(0,0,0,0.15)';
+    ctx.shadowBlur = 3;
+    ctx.fillText(name, r - 12, 5);
+    ctx.restore();
+  });
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, 30, 0, 2 * Math.PI);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+  ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+}
+
+function getWinnerAtAngle(angle) {
+  const n = slots.length;
+  const arc = (2 * Math.PI) / n;
+  const pointer = (3 * Math.PI / 2);
+  let adjusted = ((pointer - angle) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+  const idx = Math.floor(adjusted / arc) % n;
+  return { idx, name: slots[idx] };
+}
+
+function pickSafeIndex(badIdx) {
+  const safe = slots.map((s, i) => i).filter(i => i !== badIdx && !isBanned(slots[i]));
+  if (!safe.length) return null;
+  return safe[Math.floor(Math.random() * safe.length)];
+}
+
+function computeFinalAngle(targetIdx, startAngle, totalSpins) {
+  const n = slots.length;
+  const arc = (2 * Math.PI) / n;
+  const pointer = (3 * Math.PI / 2);
+  const jitter = (Math.random() * 0.5 - 0.25) * arc;
+  const targetMid = pointer - (targetIdx * arc + arc / 2 + jitter);
+  const base = startAngle + totalSpins * 2 * Math.PI;
+  const diff = ((targetMid - base) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+  return base + diff;
+}
+
+function easeOut(t) {
+  return 1 - Math.pow(1 - t, 4);
+}
+
+function spin() {
+  if (spinning || slots.length < 2) return;
+  spinning = true;
+  spinBtn.disabled = true;
+  ann.classList.remove('visible');
+
+  const totalSpins = 6 + Math.floor(Math.random() * 4);
+  const duration = 4000 + Math.random() * 1500;
+  const startAngle = currentAngle;
+
+  const roughFinal = startAngle + totalSpins * 2 * Math.PI + Math.random() * 2 * Math.PI;
+  const tempWinner = getWinnerAtAngle(roughFinal);
+
+  let finalAngle = roughFinal;
+
+  if (isBanned(tempWinner.name)) {
+    const safeIdx = pickSafeIndex(tempWinner.idx);
+    if (safeIdx !== null) {
+      finalAngle = computeFinalAngle(safeIdx, startAngle, totalSpins);
+    }
+  }
+
+  const start = performance.now();
+
+  function frame(now) {
+    const elapsed = now - start;
+    const t = Math.min(elapsed / duration, 1);
+    const eased = easeOut(t);
+    currentAngle = startAngle + (finalAngle - startAngle) * eased;
+    drawWheel(currentAngle);
+
+    if (t < 1) {
+      requestAnimationFrame(frame);
+    } else {
+      currentAngle = finalAngle;
+      drawWheel(currentAngle);
+      spinning = false;
+      spinBtn.disabled = false;
+
+      const winner = getWinnerAtAngle(currentAngle);
+      showWinner(winner.name);
+      launchConfetti();
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+
+function showWinner(name) {
+  ann.innerHTML = `🎉 La chance sourit à<span class="winner">${name.toUpperCase()}</span>`;
+  requestAnimationFrame(() => ann.classList.add('visible'));
+}
+
+function renderSlots() {
+  slotsList.innerHTML = '';
+  slots.forEach((name, i) => {
+    const [fill, text] = PALETTE[i % PALETTE.length];
+    const tag = document.createElement('div');
+    tag.className = 'slot-tag';
+    tag.style.borderColor = fill;
+    tag.style.color = text;
+    tag.style.background = fill + '22';
+    tag.innerHTML = `${name}<button aria-label="Supprimer ${name}" title="Supprimer">×</button>`;
+    tag.querySelector('button').addEventListener('click', () => {
+      slots.splice(i, 1);
+      renderSlots();
+      drawWheel(currentAngle);
+    });
+    slotsList.appendChild(tag);
+  });
+}
+
+function addSlot() {
+  const val = nameInput.value.trim();
+  if (!val || slots.length >= 16) return;
+  slots.push(val);
+  nameInput.value = '';
+  renderSlots();
+  drawWheel(currentAngle);
+}
+
+spinBtn.addEventListener('click', spin);
+canvas.addEventListener('click', spin);
+addBtn.addEventListener('click', addSlot);
+nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') addSlot(); });
+
+resetBtn.addEventListener('click', () => {
+  slots = ['Alice','Bob','Chloé','Dylan','Emma','Farida','Guillaume'];
+  currentAngle = 0;
+  ann.classList.remove('visible');
+  renderSlots();
+  drawWheel(currentAngle);
+});
+
+function launchConfetti() {
+  const cc = document.getElementById('confettiCanvas');
+  cc.width = window.innerWidth;
+  cc.height = window.innerHeight;
+  const cx2 = cc.getContext('2d');
+  const pieces = Array.from({length: 90}, () => ({
+    x: Math.random() * cc.width,
+    y: -10 - Math.random() * 100,
+    r: 5 + Math.random() * 8,
+    d: 2 + Math.random() * 3,
+    color: PALETTE[Math.floor(Math.random() * PALETTE.length)][0],
+    angle: 0,
+    tiltSpeed: 0.05 + Math.random() * 0.1,
+  }));
+  let frames2 = 0;
+  function drawConfetti() {
+    cx2.clearRect(0, 0, cc.width, cc.height);
+    pieces.forEach(p => {
+      cx2.beginPath();
+      cx2.ellipse(p.x, p.y, p.r, p.r * 0.5, p.angle, 0, 2 * Math.PI);
+      cx2.fillStyle = p.color;
+      cx2.fill();
+      p.y += p.d;
+      p.x += Math.sin(p.angle) * 1.5;
+      p.angle += p.tiltSpeed;
+      if (p.y > cc.height + 20) { p.y = -10; p.x = Math.random() * cc.width; }
+    });
+    frames2++;
+    if (frames2 < 120) requestAnimationFrame(drawConfetti);
+    else cx2.clearRect(0, 0, cc.width, cc.height);
+  }
+  drawConfetti();
+}
+
+renderSlots();
+drawWheel(currentAngle);
+</script>
